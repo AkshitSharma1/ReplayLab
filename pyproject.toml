@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "replaylab"
+version = "1.0.0"
+description = "Replay coding-agent shell trajectories and report repository changes after every action."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "ReplayLab contributors" }]
+dependencies = [
+  "docker>=7.2,<8",
+  "Jinja2>=3.1.6,<3.2",
+  "swebench>=5.0.2,<5.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+]
+
+[project.scripts]
+replaylab = "replaylab.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["replaylab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

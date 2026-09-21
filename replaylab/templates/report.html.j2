@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReplayLab Report — {{ report.instance_id }}</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f4f6f8; --card:#fff; --text:#17202a; --muted:#65717e; --line:#d8dee4; --good:#177245; --bad:#b42318; --warn:#9a6700; --code:#0d1117; --code-text:#e6edf3; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --card:#161b22; --text:#e6edf3; --muted:#8b949e; --line:#30363d; --code:#010409; --code-text:#e6edf3; } }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:32px auto 64px; }
+    h1,h2,h3 { line-height:1.2; }
+    h1 { margin-bottom:4px; }
+    .subtitle,.muted { color:var(--muted); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px; margin:16px 0; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .metric { border:1px solid var(--line); border-radius:8px; padding:12px; }
+    .metric strong { display:block; font-size:1.35rem; }
+    .meta { display:grid; grid-template-columns:max-content 1fr; gap:6px 14px; }
+    .meta dt { color:var(--muted); }
+    .meta dd { margin:0; overflow-wrap:anywhere; }
+    .step-head { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .step-head h2 { margin:0 auto 0 0; }
+    .badge { display:inline-block; border-radius:999px; padding:3px 9px; font-weight:650; font-size:.78rem; border:1px solid currentColor; }
+    .good { color:var(--good); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--code); color:var(--code-text); border-radius:7px; padding:14px; overflow:auto; max-height:44rem; }
+    code { font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace; }
+    details { margin-top:12px; }
+    summary { cursor:pointer; font-weight:650; }
+    ul { padding-left:22px; }
+    .signal { border-left:4px solid var(--bad); padding:8px 12px; background:color-mix(in srgb,var(--bad) 10%,transparent); font-weight:700; margin:8px 0; }
+    .error { border-left:4px solid var(--bad); padding-left:12px; }
+    .empty { color:var(--muted); font-style:italic; }
+    footer { color:var(--muted); margin-top:32px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ReplayLab Report</h1>
+    <div class="subtitle">{{ report.instance_id }}</div>
+  </header>
+
+  <section class="card">
+    <h2>Run summary</h2>
+    {% set signal_counts = report.summary.get('signal_counts', {}) %}
+    <div class="grid">
+      <div class="metric"><span>Steps replayed</span><strong>{{ report.summary.steps_replayed }} / {{ report.summary.steps_total }}</strong></div>
+      <div class="metric"><span>Output matches</span><strong>{{ report.summary.normalized_output_matches }} / {{ report.summary.recorded_outputs_available }}</strong></div>
+      <div class="metric"><span>Output match rate</span><strong>{% if report.summary.get('output_match_rate') is not none %}{{ "%.1f"|format(report.summary.output_match_rate * 100) }}%{% else %}—{% endif %}</strong></div>
+      <div class="metric"><span>Steps with changes</span><strong>{{ report.summary.steps_with_repository_changes }}</strong></div>
+      <div class="metric"><span>Timed out</span><strong>{{ report.summary.commands_timed_out }}</strong></div>
+      <div class="metric"><span>Nonzero exits</span><strong>{{ report.summary.get('commands_nonzero', 0) }}</strong></div>
+      <div class="metric"><span>Test modifications</span><strong>{{ signal_counts.get('TEST_FILE_MODIFIED', 0) }}</strong></div>
+      <div class="metric"><span>Test deletions</span><strong>{{ signal_counts.get('TEST_FILE_DELETED', 0) }}</strong></div>
+      <div class="metric"><span>Test-config changes</span><strong>{{ signal_counts.get('TEST_CONFIG_MODIFIED', 0) }}</strong></div>
+    </div>
+    <dl class="meta">
+      <dt>Status</dt><dd class="{{ 'good' if report.complete else 'bad' }}">{{ 'Complete' if report.complete else 'Incomplete' }}</dd>
+      <dt>Dataset</dt><dd>{{ report.dataset }} / {{ report.split }}</dd>
+      <dt>Image</dt><dd><code>{{ report.image }}</code></dd>
+      {% if report.image_source %}<dt>Image source</dt><dd>{{ report.image_source }}</dd>{% endif %}
+      {% if report.recorded_image %}<dt>Recorded image</dt><dd><code>{{ report.recorded_image }}</code></dd>{% endif %}
+      {% if report.image_digest %}<dt>Image digest / ID</dt><dd><code>{{ report.image_digest }}</code></dd>{% endif %}
+      <dt>Base commit</dt><dd><code>{{ report.base_commit }}</code></dd>
+      <dt>Trajectory</dt><dd>{{ report.trajectory_path }}</dd>
+      <dt>Started</dt><dd>{{ report.started_at }}</dd>
+      <dt>Completed</dt><dd>{{ report.completed_at }}</dd>
+    </dl>
+    {% if report.error %}<p class="error"><strong>Replay error:</strong> {{ report.error }}</p>{% endif %}
+    {% if report.warnings %}
+      <ul>{% for warning in report.warnings %}<li class="warn">{{ warning }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if report.baseline %}
+      <details>
+        <summary>Initial repository state</summary>
+        <p>HEAD <code>{{ report.baseline.head }}</code></p>
+        {% if report.baseline.status %}<pre><code>{{ report.baseline.status }}</code></pre>{% else %}<p class="empty">Clean worktree and index.</p>{% endif %}
+      </details>
+    {% endif %}
+  </section>
+
+  {% for step in report.steps %}
+  <article class="card">
+    <div class="step-head">
+      <h2>Step {{ step.action.step }}</h2>
+      {% if step.timed_out %}<span class="badge warn">Timed out</span>{% endif %}
+      {% if step.replay_returncode == 0 %}<span class="badge good">exit 0</span>
+      {% elif step.replay_returncode is not none %}<span class="badge bad">exit {{ step.replay_returncode }}</span>{% endif %}
+      {% if step.output_match is sameas true %}<span class="badge good">output match</span>
+      {% elif step.output_match is sameas false %}<span class="badge bad">output differs</span>
+      {% else %}<span class="badge">no recorded output</span>{% endif %}
+      <span class="muted">{{ "%.3f"|format(step.duration_seconds) }}s</span>
+    </div>
+
+    <pre><code>$ {{ step.action.command }}</code></pre>
+    {% if step.error %}<p class="error"><strong>Step error:</strong> {{ step.error }}</p>{% endif %}
+
+    {% for signal in step.signals %}<div class="signal">{{ signal }}</div>{% endfor %}
+
+    {% if step.changes %}
+      <h3>Repository changes</h3>
+      <ul>
+      {% for change in step.changes %}
+        <li><strong>{{ change.status }}</strong> <code>{% if change.old_path %}{{ change.old_path }} → {% endif %}{{ change.path }}</code> <span class="muted">({{ change.origins|join(', ') }})</span></li>
+      {% endfor %}
+      </ul>
+    {% elif step.after %}
+      <p class="empty">No repository content or index changes.</p>
+    {% else %}
+      <p class="warn">Repository state after this action is unavailable.</p>
+    {% endif %}
+
+    {% if step.worktree_diff %}
+      <details open><summary>Worktree diff for this action</summary><pre><code>{{ step.worktree_diff }}</code></pre></details>
+    {% endif %}
+    {% if step.index_diff %}
+      <details open><summary>Git index diff for this action</summary><pre><code>{{ step.index_diff }}</code></pre></details>
+    {% endif %}
+    <details>
+      <summary>Recorded output{% if step.action.recorded_returncode is not none %} (exit {{ step.action.recorded_returncode }}){% endif %}</summary>
+      {% if step.action.recorded_stdout is not none %}<pre><code>{{ step.action.recorded_stdout }}</code></pre>{% else %}<p class="empty">Not present in trajectory.</p>{% endif %}
+    </details>
+    <details>
+      <summary>Replay output{% if step.replay_returncode is not none %} (exit {{ step.replay_returncode }}){% endif %}</summary>
+      <pre><code>{{ step.replay_stdout }}</code></pre>
+    </details>
+    {% if step.after %}
+      <details><summary>Git status after action</summary>{% if step.after.status %}<pre><code>{{ step.after.status }}</code></pre>{% else %}<p class="empty">Clean worktree and index.</p>{% endif %}</details>
+    {% endif %}
+  </article>
+  {% endfor %}
+
+  <footer>Generated by ReplayLab · JSON schema replaylab-1</footer>
+</main>
+</body>
+</html>
