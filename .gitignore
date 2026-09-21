@@ -12,6 +12,7 @@ build/
 report.html
 report.json
 reports/
+replaylab-output/
 *.traj.json
 .DS_Store
 Thumbs.db

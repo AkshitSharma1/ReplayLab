@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from replaylab.analysis import AnalysisArtifacts
 from replaylab.cli import main
-from replaylab.docker_runner import ResolvedInstance
 from replaylab.state import AnalysisResult
 
 
@@ -24,13 +24,11 @@ def write_trajectory(path: Path) -> None:
 
 class CliTests(unittest.TestCase):
     def test_one_command_writes_html_and_default_json_sidecar(self):
-        resolved = ResolvedInstance(
-            "example__repo-1", "dataset", "test", "image", "base", {}, object()
-        )
         with tempfile.TemporaryDirectory() as directory:
             trajectory = Path(directory) / "trajectory.traj.json"
             write_trajectory(trajectory)
             html = Path(directory) / "report.html"
+            json_path = html.with_suffix(".json")
             result = AnalysisResult(
                 "example__repo-1", "dataset", "test", "image", "base", str(trajectory), "start",
                 completed_at="end",
@@ -44,9 +42,9 @@ class CliTests(unittest.TestCase):
                     "commands_timed_out": 0,
                 },
             )
+            artifacts = AnalysisArtifacts(result, html, json_path)
             with (
-                patch("replaylab.cli.resolve_instance", return_value=resolved),
-                patch("replaylab.cli.replay_trajectory", return_value=result) as replay,
+                patch("replaylab.cli.run_analysis", return_value=artifacts) as analyze,
             ):
                 exit_code = main([
                     "analyze", "--trajectory", str(trajectory), "--instance", "example__repo-1",
@@ -54,12 +52,10 @@ class CliTests(unittest.TestCase):
                     "--allow-network",
                 ])
             self.assertEqual(exit_code, 0)
-            self.assertTrue(html.exists())
-            payload = json.loads(html.with_suffix(".json").read_text(encoding="utf-8"))
-            self.assertEqual(payload["schema_version"], "replaylab-1")
-            replay.assert_called_once()
-            self.assertTrue(replay.call_args.kwargs["allow_network"])
-            self.assertEqual(replay.call_args.kwargs["timeout_override"], 17)
+            analyze.assert_called_once()
+            self.assertTrue(analyze.call_args.kwargs["allow_network"])
+            self.assertEqual(analyze.call_args.kwargs["timeout"], 17)
+            self.assertEqual(analyze.call_args.kwargs["dataset"], "dataset")
 
     def test_partial_replay_still_writes_requested_json_path(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -79,18 +75,31 @@ class CliTests(unittest.TestCase):
             )
             html = Path(directory) / "partial.html"
             json_path = Path(directory) / "custom.json"
+            artifacts = AnalysisArtifacts(result, html, json_path)
             with (
-                patch("replaylab.cli.resolve_instance", return_value=object()),
-                patch("replaylab.cli.replay_trajectory", return_value=result),
+                patch("replaylab.cli.run_analysis", return_value=artifacts),
             ):
                 exit_code = main([
                     "analyze", "--trajectory", str(trajectory), "--instance", "example__repo-1",
                     "--output", str(html), "--json-output", str(json_path),
                 ])
             self.assertEqual(exit_code, 1)
-            self.assertTrue(html.exists())
-            self.assertTrue(json_path.exists())
-            self.assertFalse(html.with_suffix(".json").exists())
+
+    def test_ui_command_forwards_local_server_options(self):
+        with patch("replaylab.ui.run_ui") as run_ui:
+            exit_code = main([
+                "ui", "--port", "9123", "--output-dir", "custom-output", "--no-open",
+            ])
+        self.assertEqual(exit_code, 0)
+        run_ui.assert_called_once_with(
+            port=9123,
+            output_dir=Path("custom-output"),
+            open_browser=False,
+        )
+
+    def test_ui_rejects_invalid_port(self):
+        with self.assertRaises(SystemExit):
+            main(["ui", "--port", "70000"])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ReplayLab</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172026;
+      --muted: #68757f;
+      --paper: #fbfcfa;
+      --surface: #ffffff;
+      --line: #dce2dc;
+      --accent: #176b56;
+      --accent-dark: #0f4e3f;
+      --accent-soft: #e7f3ee;
+      --danger: #b42318;
+      --danger-soft: #fef0ee;
+      --warning: #956000;
+      --shadow: 0 18px 50px rgba(23, 32, 38, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% 0%, #e9f3ee 0, transparent 34rem),
+        linear-gradient(180deg, #f8faf7 0%, var(--paper) 100%);
+      color: var(--ink);
+      font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input { font: inherit; }
+    .shell { width: min(920px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 80px; }
+    .brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 42px; }
+    .mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+      letter-spacing: -.04em;
+    }
+    .brand strong { display: block; font-size: 1.05rem; }
+    .brand span { color: var(--muted); font-size: .83rem; }
+    .hero { margin-bottom: 28px; text-align: center; }
+    h1 { max-width: 760px; margin: 0 auto 12px; font-size: clamp(2rem, 6vw, 3.55rem); line-height: 1.03; letter-spacing: -.055em; }
+    .hero p { max-width: 680px; margin: 0 auto; color: var(--muted); font-size: 1.05rem; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .panel-body { padding: 28px; }
+    .panel-head { display: flex; justify-content: center; gap: 18px; align-items: start; margin-bottom: 24px; text-align: center; }
+    h2 { margin: 0; font-size: 1.22rem; letter-spacing: -.02em; }
+    .eyebrow { color: var(--accent); font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .hint { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .field { display: grid; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-weight: 680; font-size: .88rem; }
+    input[type="text"], input[type="number"], input[type="file"] {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #cbd4cc;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(23, 107, 86, .13); }
+    input[type="file"] { padding: 7px; }
+    input[type="file"]::file-selector-button {
+      border: 0;
+      border-radius: 7px;
+      margin-right: 10px;
+      padding: 7px 11px;
+      background: #edf1ed;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .check { display: flex; gap: 9px; align-items: center; color: var(--muted); font-weight: 500; }
+    .check input { width: 17px; height: 17px; accent-color: var(--accent); }
+    .actions { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
+    .button {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 17px;
+      background: var(--accent);
+      color: white;
+      font-weight: 720;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .button:hover { background: var(--accent-dark); }
+    .button.secondary { background: #edf1ed; color: var(--ink); }
+    .button.secondary:hover { background: #e2e8e2; }
+    .button[disabled] { opacity: .55; cursor: wait; }
+    .error { display: none; margin-top: 18px; border-radius: 10px; padding: 12px 14px; background: var(--danger-soft); color: var(--danger); }
+    .status { display: none; }
+    .status-line { display: flex; justify-content: center; gap: 15px; align-items: center; padding: 20px; border: 1px solid var(--line); border-radius: 13px; background: #fafcf9; }
+    .spinner { width: 23px; height: 23px; flex: 0 0 auto; border: 3px solid #cbded6; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .phase { color: var(--accent); font-size: .75rem; font-weight: 760; letter-spacing: .07em; text-transform: uppercase; }
+    .message { margin-top: 2px; font-weight: 650; overflow-wrap: anywhere; }
+    .result { display: none; }
+    .result-title { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 18px; text-align: center; }
+    .result-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--accent); }
+    .result-dot.incomplete { background: var(--warning); }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 11px; padding: 13px; }
+    .metric span { display: block; color: var(--muted); font-size: .78rem; }
+    .metric strong { display: block; margin-top: 2px; font-size: 1.25rem; }
+    .signals { margin: 18px 0 0; padding: 13px 15px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-dark); }
+    .signals:empty { display: none; }
+    .footer-note { margin-top: 18px; color: var(--muted); font-size: .84rem; text-align: center; }
+    [hidden] { display: none !important; }
+    @media (max-width: 700px) {
+      .shell { padding-top: 30px; }
+      .brand { margin-bottom: 28px; }
+      .grid, .metrics { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .panel-body { padding: 21px; }
+      .actions { align-items: stretch; flex-direction: column; }
+      .button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand">
+      <div class="mark">RL</div>
+      <div><strong>ReplayLab</strong><span>Repository-state replay for coding agents</span></div>
+    </div>
+
+    <section class="hero">
+      <h1>See what the agent actually changed.</h1>
+      <p>Replay a recorded shell trajectory in its SWE-bench environment and inspect every repository transition, test modification, and output difference.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-body">
+        <div id="form-view">
+          <div class="panel-head">
+            <div><div class="eyebrow">New replay</div><h2>Analyze one trajectory</h2><p class="hint">Docker must be running on this machine.</p></div>
+          </div>
+          <form id="run-form" enctype="multipart/form-data">
+            <div class="grid">
+              <div class="field full">
+                <label for="trajectory">Trajectory JSON</label>
+                <input id="trajectory" name="trajectory" type="file" accept=".json,application/json" required>
+              </div>
+              <div class="field full">
+                <label for="instance">SWE-bench instance ID</label>
+                <input id="instance" name="instance" type="text" placeholder="django__django-12345" autocomplete="off" required>
+              </div>
+              <div class="field">
+                <label for="dataset">Dataset</label>
+                <input id="dataset" name="dataset" type="text" value="{{ default_dataset }}">
+              </div>
+              <div class="field">
+                <label for="split">Split</label>
+                <input id="split" name="split" type="text" value="test">
+              </div>
+              <div class="field">
+                <label for="timeout">Command timeout in seconds</label>
+                <input id="timeout" name="timeout" type="number" min="1" step="1" placeholder="Use trajectory setting">
+              </div>
+              <div class="field">
+                <label>Container networking</label>
+                <label class="check"><input name="allow_network" type="checkbox"> Allow outbound network access</label>
+              </div>
+            </div>
+            <div class="actions"><button id="submit-button" class="button" type="submit">Start replay</button></div>
+            <div id="form-error" class="error" role="alert"></div>
+          </form>
+        </div>
+
+        <div id="status-view" class="status" aria-live="polite">
+          <div class="panel-head"><div><div class="eyebrow">Replay running</div><h2>Following the environment</h2></div></div>
+          <div class="status-line">
+            <div class="spinner" aria-hidden="true"></div>
+            <div><div id="phase" class="phase">Preparing</div><div id="status-message" class="message">Preparing uploaded trajectory</div></div>
+          </div>
+        </div>
+
+        <div id="result-view" class="result">
+          <div class="result-title"><div id="result-dot" class="result-dot"></div><div><div class="eyebrow">Replay finished</div><h2 id="result-heading">Analysis complete</h2></div></div>
+          <div class="metrics">
+            <div class="metric"><span>Steps replayed</span><strong id="steps-metric">—</strong></div>
+            <div class="metric"><span>Steps changed</span><strong id="changes-metric">—</strong></div>
+            <div class="metric"><span>Output matches</span><strong id="matches-metric">—</strong></div>
+            <div class="metric"><span>Signals</span><strong id="signals-metric">—</strong></div>
+          </div>
+          <div id="result-error" class="error"></div>
+          <div id="signal-list" class="signals"></div>
+          <div class="actions">
+            <a id="report-link" class="button" href="/report">Open HTML report</a>
+            <a id="json-link" class="button secondary" href="/report.json">Download JSON</a>
+            <button id="new-run" class="button secondary" type="button">Run another trajectory</button>
+          </div>
+        </div>
+
+        <div id="failed-view" class="result">
+          <div class="result-title"><div class="result-dot incomplete"></div><div><div class="eyebrow">Replay stopped</div><h2>Could not create a report</h2></div></div>
+          <div id="failed-error" class="error"></div>
+          <div class="actions"><button id="retry-run" class="button" type="button">Try again</button></div>
+        </div>
+      </div>
+    </section>
+    <p class="footer-note">Runs locally on 127.0.0.1 · No trajectory history is retained</p>
+  </main>
+
+  <script>
+    const formView = document.getElementById("form-view");
+    const statusView = document.getElementById("status-view");
+    const resultView = document.getElementById("result-view");
+    const failedView = document.getElementById("failed-view");
+    const form = document.getElementById("run-form");
+    const submitButton = document.getElementById("submit-button");
+    const formError = document.getElementById("form-error");
+    let pollTimer = null;
+
+    function show(view) {
+      [formView, statusView, resultView, failedView].forEach(item => item.style.display = "none");
+      view.style.display = "block";
+    }
+
+    function setError(element, message) {
+      element.textContent = message || "";
+      element.style.display = message ? "block" : "none";
+    }
+
+    function phaseLabel(value) {
+      return String(value || "preparing").replaceAll("_", " ");
+    }
+
+    function renderComplete(data) {
+      const summary = data.summary || {};
+      const signalCounts = summary.signal_counts || {};
+      const signalTotal = Object.values(signalCounts).reduce((sum, count) => sum + Number(count || 0), 0);
+      document.getElementById("steps-metric").textContent = `${summary.steps_replayed || 0} / ${summary.steps_total || 0}`;
+      document.getElementById("changes-metric").textContent = summary.steps_with_repository_changes || 0;
+      document.getElementById("matches-metric").textContent = `${summary.normalized_output_matches || 0} / ${summary.recorded_outputs_available || 0}`;
+      document.getElementById("signals-metric").textContent = signalTotal;
+      document.getElementById("result-heading").textContent = data.result_complete ? "Analysis complete" : "Partial report ready";
+      document.getElementById("result-dot").classList.toggle("incomplete", !data.result_complete);
+      setError(document.getElementById("result-error"), data.error);
+      const signalText = Object.entries(signalCounts).filter(([, count]) => count).map(([name, count]) => `${name}: ${count}`).join(" · ");
+      document.getElementById("signal-list").textContent = signalText;
+      document.getElementById("report-link").href = data.report_url;
+      document.getElementById("json-link").href = data.json_url;
+      show(resultView);
+    }
+
+    function renderStatus(data) {
+      if (data.status === "running") {
+        document.getElementById("phase").textContent = phaseLabel(data.phase);
+        document.getElementById("status-message").textContent = data.message || "Replay running";
+        show(statusView);
+        return true;
+      }
+      if (data.status === "complete") {
+        renderComplete(data);
+        return false;
+      }
+      if (data.status === "failed") {
+        setError(document.getElementById("failed-error"), data.error || "Replay failed.");
+        show(failedView);
+        return false;
+      }
+      show(formView);
+      return false;
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch("/api/status", {cache: "no-store"});
+        const active = renderStatus(await response.json());
+        if (!active && pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      } catch (_error) {
+        document.getElementById("status-message").textContent = "Waiting for the local ReplayLab server";
+      }
+    }
+
+    function beginPolling() {
+      if (!pollTimer) pollTimer = setInterval(refreshStatus, 1000);
+      refreshStatus();
+    }
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      setError(formError, "");
+      submitButton.disabled = true;
+      try {
+        const response = await fetch("/api/run", {method: "POST", body: new FormData(form)});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not start replay.");
+        show(statusView);
+        beginPolling();
+      } catch (error) {
+        setError(formError, error.message);
+        show(formView);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    function resetForm() {
+      form.reset();
+      document.getElementById("dataset").value = "{{ default_dataset }}";
+      document.getElementById("split").value = "test";
+      setError(formError, "");
+      show(formView);
+    }
+
+    document.getElementById("new-run").addEventListener("click", resetForm);
+    document.getElementById("retry-run").addEventListener("click", resetForm);
+    refreshStatus().then(() => {
+      fetch("/api/status", {cache: "no-store"}).then(response => response.json()).then(data => {
+        if (data.status === "running") beginPolling();
+      });
+    });
+  </script>
+</body>
+</html>

@@ -10,6 +10,16 @@ ReplayLab makes this behavior explicit. It replays the recorded shell commands i
 No LLM is required for this analysis. The results come directly from replaying the commands and observing the environment.
 <br><br><br>
 
+## See it in action
+
+The local interface lets you upload a trajectory and enter the corresponding SWE-bench instance ID.
+
+![ReplayLab local interface for starting a replay](docs/images/ui-launcher.png)
+
+The report then shows what changed after each command. In this real Astropy replay, the agent stages a source edit, and ReplayLab captures the Git-index diff for that action.
+
+![ReplayLab report showing a staged source change and its Git-index diff](docs/images/report-index-diff.png)
+
 ## Why ReplayLab is useful
 
 Suppose a trajectory looks like this:
@@ -67,6 +77,22 @@ python -m pip install -e ".[dev]"
 ```
 
 ## Run ReplayLab
+
+Launch the local browser interface:
+
+```bash
+replaylab ui
+```
+
+Upload a trajectory, enter its SWE-bench instance ID, and start the replay. The page shows live progress and provides links to the finished HTML and JSON reports. By default, the current reports are written to `replaylab-output/`.
+
+You can select another port or output directory:
+
+```bash
+replaylab ui --port 8765 --output-dir replaylab-output
+```
+
+To run ReplayLab entirely from the command line:
 
 ```bash
 replaylab analyze \

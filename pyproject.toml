@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "replaylab"
-version = "1.0.0"
+version = "1.1.0"
 description = "Replay coding-agent shell trajectories and report repository changes after every action."
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
@@ -12,6 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "ReplayLab contributors" }]
 dependencies = [
   "docker>=7.2,<8",
+  "Flask>=3.1,<4",
   "Jinja2>=3.1.6,<3.2",
   "swebench>=5.0.2,<5.1",
 ]
