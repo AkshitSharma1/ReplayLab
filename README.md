@@ -1,7 +1,7 @@
 # ReplayLab
 
 ReplayLab is a lightweight audit tool that replays coding-agent shell trajectories inside SWE-bench environments and shows exactly how the repository changes after every action.
-
+<hr style="height: 0.1px; background-color: black; border: none;">
 I built ReplayLab because coding-agent trajectories often show what an agent *said* it did without making it easy to see what actually changed inside the repository.
 
 An agent may inspect a source file, run a failing test, edit the implementation, modify a test, and then report success. When a trajectory contains dozens of shell actions and large command outputs, it becomes difficult to tell whether the agent fixed the underlying problem or simply changed the evaluation around it.
